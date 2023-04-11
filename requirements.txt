@@ -1,0 +1,2 @@
+pyserial==3.5
+svgpathtools==1.4.4
