@@ -39,4 +39,21 @@ Now you are ready to run Python plotter code!
 
 Initialization of the CNC shield is performed using the `GRBL Config` file. This file sets up the servo and stepper motors for the plotter and paper feeder.
 
-TODO: configuration for paper feeder, and modifications to grbl library for motion sensor input/reset.
+## TODO
+
+- GRBL configuration for paper feeder
+- Modifications to grbl library for motion sensor input/reset
+
+### Resources
+
+- [Nema 17](https://voltatek.ca/stepper-motors/226-nema-17-stepper-motor-15a-17hs4401-for-cnc-or-3d-printer.html)
+- [Nema 23](https://www.pishop.ca/product/stepper-motor-125-oz-in-200-stepsrev/)
+- [28byj-48](https://www.solarbotics.com/product/22305/) + [driver board](https://www.solarbotics.com/product/22315/)
+- [Youtube link for diy plotter](https://www.youtube.com/watch?v=XYqx5wg4oLU)
+- [Cnc shield v3.10specs](https://blog.protoneer.co.nz/arduino-cnc-shield/)
+
+### Erika
+
+- Paper frame for paper advance
+- How to attach stepper to rods for paper advance
+- How to mount paper advancer to plotter platform
