@@ -42,7 +42,17 @@ Initialization of the CNC shield is performed using the `GRBL Config` file. This
 ## TODO
 
 - GRBL configuration for paper feeder
-- Modifications to grbl library for motion sensor input/reset
+  - Use z-axis to feed paper
+- Motion sensor input/reset
+  1. Print full file
+  2. Send feed hold command after print: `'!'`, OR
+  3. Send feed hold after the print where timer has expired
+  4. Query status of plotter `'?'`
+  5. Once IR motion is detected on `RESUME` pin, status should be `OK`
+  6. Repeat steps `1` to `5`
+- Drawing selection
+  - Randomized, shuffle list of files and iterate
+  - Once complete, shuffle again and repeat
 
 ### Resources
 
