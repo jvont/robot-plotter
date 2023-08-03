@@ -1,3 +1,0 @@
-[submodule "grbl"]
-	path = grbl
-	url = git@github.com:grbl/grbl.git
