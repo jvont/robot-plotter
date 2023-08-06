@@ -13,14 +13,18 @@ port_name = 'COM7'
 # gcode folder
 gcode_path = 'gcode/'
 
-# motion detection timeout, in minutes
-# 
-# the last print will finish before this is checked
-motion_timeout = 0.1 # 30
+# timeout after which the printer will not start a new print, in minutes
+print_stop_time = 0.1 # 30
 
-# paper feed amount (z-axis)
-feed_rate = 100
-feed_amount = 600
+# delay before starting a new print, in seconds
+print_start_delay = 5
+
+# paper feeder settings (GCode Z-Axis)
+paper_feed_rate = 100
+paper_feed_amount = 1 # 100
+
+# set flag to perform a homing cycle after each print
+homing_after_print = True
 
 # ----------------------------------------------------------------------------
 
@@ -37,6 +41,12 @@ class termcols:
     BOLD = '\033[1m'
     ULINE = '\033[4m'
     END = '\033[0m'
+
+
+def print_status(msg: str, col=termcols.MAGENTA):
+    """Print a status message (colourized)."""
+    
+    print(f'{col}{msg}{termcols.END}')
 
 
 def send_command(s: serial.Serial, cmd: str, log=False):
@@ -81,6 +91,14 @@ def wake_grbl(s: serial.Serial):
     s.reset_input_buffer()
 
 
+def home_grbl(s: serial.Serial, log=True):
+    """Perform a GRBL homing cycle."""
+
+    send_command(s, 'M3S60', log=log)
+    send_command(s, '$H', log=log)
+    send_command(s, 'G92X0Y0', log=log)
+
+
 if __name__ == '__main__':
     # read gcode files, shuffle 'em up
     files = [os.path.join(gcode_path, f) for f in os.listdir(gcode_path)]
@@ -88,57 +106,54 @@ if __name__ == '__main__':
     print(f'{termcols.MAGENTA}Shuffled GCode files:{termcols.CYAN}')
     for f in files:
         print(f)
-    input(f'{termcols.END}Press [enter] if this is OK')
 
-    # FIXME
-    files = ['gcode/test.gcode']
+    # input(f'{termcols.END}Press [enter] if this is OK')
 
-    try:
-        # open serial port and rouse the GRBL
-        s = serial.Serial(port_name, 115200)
+    # open serial port
+    with serial.Serial(port_name, 115200) as s:
+        # rouse the GRBL
         wake_grbl(s)
 
         # send GRBL config commands
-        print(f'{termcols.MAGENTA}Configuring GRBL{termcols.END}')
+        print_status('Configuring GRBL')
         with open('GRBL Config', 'r') as f:
             for line in f:
                 send_command(s, line, log=True)
 
-        # unlock GRBL
+        # unlock GRBL, set absolute positioning
         send_command(s, '$X', log=True)
+        send_command(s, f'G90', log=True)
+
+        # run homing cycle and set origin
+        print_status('Running homing cycle')
+        home_grbl(s)
 
         # ~~~ main loop ~~~
         i = 0
-        t0 = -60 * motion_timeout
-
+        t0 = -60 * print_stop_time
         while 1:
-            # run homing cycle and set origin
-            print(f'{termcols.MAGENTA}Running homing cycle{termcols.END}')
-            send_command(s, 'M3S60', log=True)
-            send_command(s, '$H', log=True)
-            send_command(s, 'G92X0Y0', log=True)
-
             # no movement detected within timeout
-            if (time.time() - t0) > (60 * motion_timeout):
-                print(f'{termcols.MAGENTA}Waiting for motion{termcols.END}')
+            if (time.time() - t0) > (60 * print_stop_time):
+                print_status('Waiting for motion...')
                 
                 # send feed hold and wait for motion (resume pin)
                 send_command(s, '!', log=True)
-                while get_status(s) != 'Idle':
-                    print(get_status(s))
-                    time.sleep(0.3)
-                    pass
                 
                 # reset start time
                 t0 = time.time()
 
-            # feed paper
-            print(f'{termcols.MAGENTA}Feeding paper{termcols.END}')
-            send_command(s, f'F{feed_rate}')
-            send_command(s, f'G1Z{feed_amount}')
+            # wait before starting paper feed
+            time.sleep(print_start_delay)
+
+            # feed paper relative to current position
+            print_status('Feeding paper')
+            send_command(s, f'G91', log=True)
+            send_command(s, f'F{paper_feed_rate}', log=True)
+            send_command(s, f'G1Z{paper_feed_amount}', log=True)
+            send_command(s, f'G90', log=True)
             
             # start printing
-            print(f'{termcols.MAGENTA}Printing {files[i]}{termcols.END}')
+            print_status(f'Printing {files[i]}')
             with open(files[i], 'r') as f:
                 for line in f:
                     try:
@@ -148,13 +163,17 @@ if __name__ == '__main__':
                         send_command(s, '!', log=True)
                         break
             
+            # wait until print is finished
+            print_status(f'Finishing {files[i]}')
+            while get_status(s) == 'Run':
+                pass
+
+            # rerun homing cycle
+            if homing_after_print:
+                print_status('Rerun homing cycle')
+                home_grbl(s)
+
             # move to next file
             i = (i + 1) % len(files)
 
-            # FIXME
-            input('file printed. press enter to contunie')
-
-    finally:
-        # close serial port
-        s.close()
-        print(f'{termcols.MAGENTA}Closed serial port.{termcols.END}')
+    print_status('Closed serial port.')
