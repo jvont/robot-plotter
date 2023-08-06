@@ -26,6 +26,9 @@ paper_feed_amount = 1 # 100
 # set flag to perform a homing cycle after each print
 homing_after_print = True
 
+# set flag to bypass motion detector
+bypass_feed_hold = True
+
 # ----------------------------------------------------------------------------
 
 
@@ -137,7 +140,8 @@ if __name__ == '__main__':
                 print_status('Waiting for motion...')
                 
                 # send feed hold and wait for motion (resume pin)
-                send_command(s, '!', log=True)
+                if not bypass_feed_hold:
+                    send_command(s, '!', log=True)
                 
                 # reset start time
                 t0 = time.time()
