@@ -8,7 +8,7 @@ import time
 # Input Parameters ------------------ -----------------------------------------
 
 # arduino port
-port_name = 'COM7'
+port_name = 'COM4'
 
 # gcode folder
 gcode_path = 'gcode/'
@@ -27,7 +27,7 @@ paper_feed_amount = 1 # 100
 homing_after_print = True
 
 # set flag to bypass motion detector
-bypass_feed_hold = True
+bypass_feed_hold = False
 
 # ----------------------------------------------------------------------------
 
@@ -137,11 +137,12 @@ if __name__ == '__main__':
         while 1:
             # no movement detected within timeout
             if (time.time() - t0) > (60 * print_stop_time):
-                print_status('Waiting for motion...')
                 
                 # send feed hold and wait for motion (resume pin)
                 if not bypass_feed_hold:
+                    print_status('Waiting for motion...')
                     send_command(s, '!', log=True)
+                    print_status('Motion detected!')
                 
                 # reset start time
                 t0 = time.time()
